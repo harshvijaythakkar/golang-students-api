@@ -12,6 +12,7 @@ import (
 
 	"github.com/harshvijaythakkar/golang-students-api/internal/config"
 	"github.com/harshvijaythakkar/golang-students-api/internal/http/handlers/student"
+	"github.com/harshvijaythakkar/golang-students-api/internal/storage/sqlite"
 )
 
 func main() {
@@ -20,6 +21,13 @@ func main() {
 
 
 	// database setup
+	storage, err := sqlite.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("Sorage Initialised", slog.String("env", cfg.Env), slog.String("version", "1.0.0"))
+
 	// setup router
 	router := http.NewServeMux()
 
@@ -29,7 +37,7 @@ func main() {
 	})
 
 	// create students
-	router.HandleFunc("POST /api/students", student.New())
+	router.HandleFunc("POST /api/students", student.New(storage))
 
 	// setup server
 	server := http.Server{
@@ -63,7 +71,7 @@ func main() {
 	defer cancel()
 
 	// call shutdown method with 5 sec context
-	err := server.Shutdown(ctx)
+	err = server.Shutdown(ctx)
 	if err != nil {
 		slog.Error("Failed to shutdown server", slog.String("error", err.Error()))
 	}
