@@ -101,3 +101,32 @@ func GetList(storage storage.Storage) http.HandlerFunc {
 		response.WriteJson(w, http.StatusOK, students)
 	}
 }
+
+// Delete student by ID
+func Delete(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		slog.Info("Deleting student", slog.String("id", fmt.Sprint(id)))
+
+		intId, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		_, err = storage.GetStudentByID(intId)
+		if err != nil {
+			slog.Error("Student not found", slog.String("id", id))
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		err = storage.DeleteStudent(intId)
+		if err != nil {
+			slog.Error("Error in deleting student", slog.String("id", id))
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+		response.WriteJson(w, http.StatusNoContent, map[string]bool{"result": true})
+	}
+}

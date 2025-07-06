@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/harshvijaythakkar/golang-students-api/internal/config"
 	"github.com/harshvijaythakkar/golang-students-api/internal/types"
@@ -127,4 +128,31 @@ func (s *Sqlite) GetStudents() ([]types.Student, error) {
 	}
 
 	return  studentsInfo, nil
+}
+
+// Delete student by ID
+func (s *Sqlite) DeleteStudent(id int64) (error) {
+
+	// prepare statement
+	stmt, err := s.Db.Prepare("DELETE FROM students WHERE id = ?;")
+	if err != nil {
+		return err
+	}
+
+	// close statement
+	defer stmt.Close()
+
+	result, err := stmt.Exec(id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Records Deleted", slog.String("count", fmt.Sprint(rowsAffected)))
+
+	return nil
 }
