@@ -130,3 +130,50 @@ func Delete(storage storage.Storage) http.HandlerFunc {
 		response.WriteJson(w, http.StatusNoContent, map[string]bool{"result": true})
 	}
 }
+
+// Update student by ID
+func Update(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		slog.Info("Updating student data", slog.String("id", id))
+
+		intId, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		_, err = storage.GetStudentByID(intId)
+		if err != nil {
+			slog.Error("Student not found", slog.String("id", id))
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		// create a var to store request body data
+		var updates map[string]interface{}
+
+		// decode data and store it in updates map
+		err = json.NewDecoder(r.Body).Decode(&updates)
+
+		// check for empty body error
+		if errors.Is(err, io.EOF) {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("empty body")))
+			return 
+		}
+
+		// check for other error
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return 
+		}
+
+		err = storage.UpdateStudent(intId, updates)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return 
+		}
+
+		response.WriteJson(w, http.StatusNoContent, map[string]bool{"result":true})
+	}
+}

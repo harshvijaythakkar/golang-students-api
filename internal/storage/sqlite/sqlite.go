@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/harshvijaythakkar/golang-students-api/internal/config"
 	"github.com/harshvijaythakkar/golang-students-api/internal/types"
@@ -156,3 +157,48 @@ func (s *Sqlite) DeleteStudent(id int64) (error) {
 
 	return nil
 }
+
+// Update student by ID
+func (s *Sqlite) UpdateStudent(id int64, data map[string]interface{}) (error) {
+
+	// Set sql clauses dynamically and capture values
+	setClauses := []string{}
+	args := []interface{}{}
+	for field, value := range data {
+		switch field {
+		case "name", "email", "age":
+			setClauses = append(setClauses, fmt.Sprintf("%s = ?", field))
+			args = append(args, value)
+		default:
+			return fmt.Errorf("invalid field: %s", field)
+		}
+	}
+
+	args = append(args, id)
+
+	// prepare statement
+	query := fmt.Sprintf("UPDATE students SET %s WHERE id = ?;", strings.Join(setClauses, ", "))
+	stmt, err := s.Db.Prepare(query)
+	if err != nil {
+		return err
+	}
+
+	// close statement
+	defer stmt.Close()
+
+	// execute statement
+	result, err := stmt.Exec(args...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Update successful", slog.String("count", fmt.Sprint(rowsAffected)))
+
+	return nil
+}
+
